@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Weather App - Live Weather</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -238,20 +241,34 @@
         const API_KEY = '9477ed8eda5d46a0ad74324cfadc20c5';  // Your actual OpenWeatherMap API key
         const API_URL = 'https://api.openweathermap.org/data/2.5/weather';
 
-        // Load last searched city from localStorage
+        // 🔥 IMPORTANT: REMOVED localStorage loading - Now page starts empty on refresh!
         window.onload = function() {
-            const lastCity = localStorage.getItem('lastCity');
-            if (lastCity) {
-                document.getElementById('cityInput').value = lastCity;
-                getWeather();
-            }
+            // Clear any stored city from previous session (optional - uncomment if you want to completely clear storage)
+            // localStorage.removeItem('lastCity');
+            
+            // Start with empty state - no automatic weather fetch
+            // Just clear the input field and hide weather info
+            document.getElementById('cityInput').value = '';
+            document.getElementById('weatherInfo').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('loading').style.display = 'none';
+            
+            // Optional: Clear the stored city when page loads
+            // localStorage.removeItem('lastCity');
         };
 
         async function getWeather(city = null) {
             const cityInput = city || document.getElementById('cityInput').value.trim();
             
-            if (!cityInput) return;
+            if (!cityInput) {
+                document.getElementById('error').textContent = 'Please enter a city name!';
+                document.getElementById('error').style.display = 'block';
+                return;
+            }
 
+            // Clear previous data
+            clearWeatherDisplay();
+            
             // Show loading
             document.getElementById('loading').style.display = 'block';
             document.getElementById('error').style.display = 'none';
@@ -264,7 +281,7 @@
                     if (response.status === 401) {
                         throw new Error('Invalid API key. Please check your OpenWeatherMap API key.');
                     } else if (response.status === 404) {
-                        throw new Error('City not found');
+                        throw new Error(`"${cityInput}" not found. Please check spelling.`);
                     } else {
                         throw new Error('Weather service error');
                     }
@@ -272,7 +289,9 @@
                 
                 const data = await response.json();
                 displayWeather(data);
-                saveLastCity(cityInput);
+                
+                // ❌ REMOVED: saveLastCity(cityInput); - No longer saving to localStorage
+                // This prevents showing previous city on refresh
                 
             } catch (error) {
                 document.getElementById('error').textContent = error.message;
@@ -280,6 +299,17 @@
             } finally {
                 document.getElementById('loading').style.display = 'none';
             }
+        }
+
+        // New function to clear weather display completely
+        function clearWeatherDisplay() {
+            document.getElementById('city').textContent = '';
+            document.getElementById('temp').textContent = '';
+            document.getElementById('description').textContent = '';
+            document.getElementById('humidity').textContent = '-';
+            document.getElementById('windSpeed').textContent = '-';
+            document.getElementById('weatherIcon').innerHTML = '';
+            document.getElementById('weatherInfo').style.display = 'none';
         }
 
         function displayWeather(data) {
@@ -291,15 +321,12 @@
 
             // Weather icon
             const iconClass = getWeatherIcon(data.weather[0].main, data.weather[0].icon);
-            document.getElementById('weatherIcon').innerHTML = `<i class="${iconClass}"></i>`;
+            document.getElementById('weatherIcon').innerHTML = `<i class="${iconClass}" style="font-size: 4rem;"></i>`;
 
             // Change background based on weather
             changeBackground(data.weather[0].main.toLowerCase());
 
             document.getElementById('weatherInfo').style.display = 'block';
-            
-            // Clear input (optional)
-            // document.getElementById('cityInput').value = '';
         }
 
         function getWeatherIcon(main, icon) {
@@ -336,9 +363,7 @@
             }
         }
 
-        function saveLastCity(city) {
-            localStorage.setItem('lastCity', city);
-        }
+        // ❌ REMOVED: saveLastCity function - No longer saving to localStorage
 
         // Search on Enter key
         document.getElementById('cityInput').addEventListener('keypress', function(e) {
